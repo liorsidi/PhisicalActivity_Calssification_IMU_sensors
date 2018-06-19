@@ -16,8 +16,9 @@ def extract_features_subject(spark, subject_file):
     :param spark:
     :param subject_file:
     :return: Dataframe
-    '''
-    pass
+    '''    
+    df = spark.read.csv(subject_file, header=False, sep=' ')
+    return df
 
 
 def split_dataset(spark, subject_features, split_rate, subject_file):
@@ -27,9 +28,12 @@ def split_dataset(spark, subject_features, split_rate, subject_file):
     :param subject_features:
     :param split_rate:
     :param subject_file:
-    :return:
+    :return: train, test
     '''
-    pass
+    num = subject_features.count()
+    train = subject_features[0:round(num*split_rate)]
+    tests = subject_features[round(num*split_rate):]
+    return train, test
 
 
 def evaluate_model(test, preds):
