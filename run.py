@@ -17,7 +17,8 @@ def extract_features_subject(spark, subject_file):
     :param subject_file:
     :return: Dataframe
     '''    
-    df = spark.read.csv(subject_file, header=False, sep=' ')
+    df = spark.read.csv(subject_file, header=False, sep=' ', inferSchema=True)
+    
     return df
 
 
