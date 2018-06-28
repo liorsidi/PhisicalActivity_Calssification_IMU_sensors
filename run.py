@@ -5,6 +5,7 @@ from pyspark.sql import SparkSession
 from sklearn.datasets import load_iris
 from operator import add
 import numpy as np
+from pyspark.sql import functions as F
 from pyspark.sql import Window
 from pyspark.sql.functions import  max, avg, variance
 from pyspark.ml.classification import DecisionTreeClassifier, RandomForestClassifier, GBTClassifier, LinearSVC, \
@@ -26,18 +27,19 @@ def extract_features_subject(spark, subject_file):
     :return: Dataframe
     '''
     df = spark.read.csv(subject_file + '.dat', header=False, sep=' ',inferSchema=True)
-
+    # Change NaN to null
+    cols = [F.when(~F.col(x).isin("NULL", "NA", "NaN"), F.col(x)).alias(x)  for x in df.columns]
+    df = df.select(*cols)
     df = df.withColumnRenamed('_c3', 'hand_temp')
     df = df.withColumnRenamed('_c20', 'chest_temp')
     df = df.withColumnRenamed('_c37', 'ankle_temp')
-    #   map = df.columns.map((_, "null")).toMap()
-    #   df = 
+
     #remove 0 activity
     df = df.filter(df['_c1'] != 0)
     #fill heart rate
     df = df.fillna(-1.0, subset=['_c2'])
     #   df = df.fillna('null')
-    window = Window.partitionBy('_c1').orderBy('_c0').rowsBetween(-20,0)
+    window = Window.partitionBy('_c1').orderBy('_c0').rowsBetween(-10,10)
     hr_filled = max(df['_c2']).over(window)
     df = df.withColumn('hr', hr_filled)
     accels = ['_c4','_c5', '_c6', '_c21' ,'_c22','_c23','_c38','_c39','_c40']
@@ -45,7 +47,7 @@ def extract_features_subject(spark, subject_file):
     mags = ['_c13','_c14','_c15','_c30','_c31','_c32','_c47','_c48','_c49']
     lab = ['hand_x', 'hand_y', 'hand_z','chest_x', 'chest_y', 'chest_z','ankle_x', 'ankle_y', 'ankle_z']
     for i, accel in enumerate(accels):
-    df = df.withColumn('accel_{}_avg'.format(lab[i]),m_avg(df[accel]).over(window))
+    df = df.withColumn('accel_{}_avg'.format(lab[i]),avg(df[accel]).over(window))
     for i, accel in enumerate(accels):
     df = df.withColumn('accel_{}_var'.format(lab[i]), variance(df[accel]).over(window))   
     for i, gyro in enumerate(gyros):
