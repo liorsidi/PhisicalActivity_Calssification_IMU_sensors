@@ -25,7 +25,41 @@ def extract_features_subject(spark, subject_file):
     :return: Dataframe
     '''
     df = spark.read.csv(subject_file + '.dat', header=False, sep=' ',inferSchema=True)
-    return df
+
+    df = df.withColumnRenamed('_c3', 'hand_temp')
+    df = df.withColumnRenamed('_c20', 'chest_temp')
+    df = df.withColumnRenamed('_c37', 'ankle_temp')
+    #   map = df.columns.map((_, "null")).toMap()
+    #   df = 
+    #remove 0 activity
+    df = df.filter(df['_c1'] != 0)
+    #fill heart rate
+    df = df.fillna(-1.0, subset=['_c2'])
+    #   df = df.fillna('null')
+    window = Window.partitionBy('_c1').orderBy('_c0').rowsBetween(-20,0)
+    hr_filled = max(df['_c2']).over(window)
+    df = df.withColumn('hr', hr_filled)
+    accels = ['_c4','_c5', '_c6', '_c21' ,'_c22','_c23','_c38','_c39','_c40']
+    gyros = ['_c10','_c11','_c12','_c27','_c28','_c29','_c44','_c45','_c46']
+    mags = ['_c13','_c14','_c15','_c30','_c31','_c32','_c47','_c48','_c49']
+    lab = ['hand_x', 'hand_y', 'hand_z','chest_x', 'chest_y', 'chest_z','ankle_x', 'ankle_y', 'ankle_z']
+    for i, accel in enumerate(accels):
+    df = df.withColumn('accel_{}_avg'.format(lab[i]),m_avg(df[accel]).over(window))
+    for i, accel in enumerate(accels):
+    df = df.withColumn('accel_{}_var'.format(lab[i]), variance(df[accel]).over(window))   
+    for i, gyro in enumerate(gyros):
+    df = df.withColumn('gyro_{}_avg'.format(lab[i]), avg(df[gyro]).over(window))
+    for i, gyro in enumerate(gyros):
+    df = df.withColumn('gyro_{}_var'.format(lab[i]), variance(df[gyro]).over(window))
+    for i, mag in enumerate(mags):
+    df = df.withColumn('mag_{}_avg'.format(lab[i]), avg(df[mag]).over(window))
+    for i, mag in enumerate(mags):
+    df = df.withColumn('mag_{}_var'.format(lab[i]), variance(df[mag]).over(window))
+    out_cols = ['_c0', '_c1', 'hand_temp', 'chest_temp', 'ankle_temp'] +df.columns[54:]
+    new_df = df.select(out_cols)
+    new_df = new_df.withColumnRenamed('_c0', 'timestamp')
+    new_df = new_df.withColumnRenamed('_c1', 'label')
+    return new_df
 
 
 def split_dataset(spark, subject_features, split_rate, subject_file):
@@ -37,9 +71,7 @@ def split_dataset(spark, subject_features, split_rate, subject_file):
     :param subject_file:
     :return: train, test
     '''
-    num = subject_features.count()
-    train = subject_features[0:round(num*split_rate)]
-    tests = subject_features[round(num*split_rate):]
+    train, test = a.randomSplit([split_rate, 1-split_rate])
     return train, test
 
 
