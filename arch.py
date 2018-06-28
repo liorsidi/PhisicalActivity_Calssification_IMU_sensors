@@ -14,12 +14,6 @@ def extract_features_subject(spark, subject_file):
     '''
     the function compute features and return dataframe
 
-    remove all 0 activity
-    remove all accelometer 6
-    fillna with last value
-
-    extract simple features: x, y, z, x^2,  y^2, z^2, xy, xz, y*z
-    extract window features: for each feature copute: min, max, avg, std
     :param spark:
     :param subject_file:
     :return: Dataframe
