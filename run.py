@@ -5,7 +5,8 @@ from pyspark.sql import SparkSession
 from sklearn.datasets import load_iris
 from operator import add
 import numpy as np
-
+from pyspark.sql import Window
+from pyspark.sql.functions import  max, avg, variance
 from pyspark.ml.classification import DecisionTreeClassifier, RandomForestClassifier, GBTClassifier, LinearSVC, \
     NaiveBayes
 
