@@ -50,6 +50,12 @@ def evaluate_model(test, preds):
     :param preds:
     :return:
     """
+    result = {}
+
+    result['auc_score'] = auc_score(preds, test, mode = 'weighted')
+    result['auc_per_class'] = auc_score(preds, test)
+    result['f1_score'] = f1_score(preds, test, mode='weighted')
+    result['f1_per_class'] = f1_score(preds, test)
     pass
 
 
@@ -83,7 +89,9 @@ for subject in subjects:
     train, test = split_dataset(spark, subject_features, split_rate, subject_file)
     best_w_f1 = 0
     best_w_auc = 0
+    subjects_models_class_results[subject] = {}
     for model in models:
+
         subject_model = model['model_class'](**model['params'])
         subject_model.fit(train)
         subject_model.save(subject_file)
@@ -92,9 +100,9 @@ for subject in subjects:
         result = evaluate_model(test, preds)
         result['subjectId'] = subject
         result['model'] = model['name']
-        subjects_models_class_results[subject] = result['classes_res']
         results.append(result)
 
+        subjects_models_class_results[subject][model['name']] = result['classes_auc_res']
         if result['best_w_auc'] > best_w_auc:
             subjects_best_models[subject] = {}
             subjects_best_models[subject]['subject_model'] = subject_model
